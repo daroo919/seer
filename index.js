@@ -141,7 +141,7 @@ async function registerCommands() {
 
 client.once("clientReady", async () => {
   console.log(`✅ 봇 로그인 성공: ${client.user.tag}`);
-  client.user.setActivity("슬래시 명령어 대기 중 | /help");
+  client.user.setActivity("기다리고 있어..| /help");
   await registerCommands();
 });
 
@@ -170,12 +170,12 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   else if (commandName === "ping") {
-    const sent = await interaction.reply({ content: "🏓 Pinging...", fetchReply: true });
+    const sent = await interaction.reply({ content: "시어의 생사 확인중..", fetchReply: true });
     const latency = sent.createdTimestamp - interaction.createdTimestamp;
     const apiLatency = Math.round(client.ws.ping);
 
     const embed = new EmbedBuilder()
-      .setTitle("🏓 Pong!")
+      .setTitle("응.. 살아있어")
       .setColor(0x00c851)
       .addFields(
         { name: "왕복 지연 시간", value: `${latency}ms`, inline: true },
@@ -193,7 +193,7 @@ client.on("interactionCreate", async (interaction) => {
       : null;
 
     const embed = new EmbedBuilder()
-      .setTitle(`👤 사용자 정보: ${target.username}`)
+      .setTitle(`사용자 정보: ${target.username}`)
       .setColor(0x7289da)
       .setThumbnail(target.displayAvatarURL({ dynamic: true, size: 256 }))
       .addFields(
@@ -242,7 +242,7 @@ client.on("interactionCreate", async (interaction) => {
     await guild.fetch();
 
     const embed = new EmbedBuilder()
-      .setTitle(`🏠 서버 정보: ${guild.name}`)
+      .setTitle(`서버 정보: ${guild.name}`)
       .setColor(0xff9900)
       .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
       .addFields(
@@ -291,7 +291,7 @@ client.on("interactionCreate", async (interaction) => {
       });
 
       const embed = new EmbedBuilder()
-        .setTitle("🖼️ 이미지 첨부 테스트")
+        .setTitle("이미지 첨부 테스트")
         .setColor(0xe74c3c)
         .setDescription("PNG 이미지 첨부가 정상 작동합니다!")
         .setImage("attachment://test_image.png")
@@ -340,7 +340,7 @@ client.on("interactionCreate", async (interaction) => {
     } catch (err) {
       console.error("OpenRouter API 오류:", err);
       await interaction.editReply({
-        content: `❌ AI 응답 생성 중 오류가 발생했습니다: ${err.message}`,
+        content: `지 지금은 살작 멍해.. 이따가 예기해줘..: ${err.message}`,
       });
     }
   }
