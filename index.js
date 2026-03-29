@@ -16,6 +16,21 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// ===== RPG ===== (여기에 붙여)
+const DATA_PATH = path.join(__dirname, "rpg.json");
+const CODE_PATH = path.join(__dirname, "codes.json");
+
+function loadJSON(p) {
+  if (!fs.existsSync(p)) return {};
+  return JSON.parse(fs.readFileSync(p));
+}
+function saveJSON(p, d) {
+  fs.writeFileSync(p, JSON.stringify(d, null, 2));
+}
+
+let users = loadJSON(DATA_PATH);
+let codes = loadJSON(CODE_PATH);
+
 const TOKEN = process.env.TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -147,6 +162,28 @@ client.once("clientReady", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+  else if (commandName === "시작") {
+  users[interaction.user.id] = { hp: 100, attack: 10 };
+  saveJSON(DATA_PATH, users);
+  return interaction.reply("시작!");
+}
+
+else if (commandName === "상태") {
+  const u = users[interaction.user.id];
+  if (!u) return interaction.reply("먼저 시작");
+
+  return interaction.reply(`HP:${u.hp}`);
+}
+
+else if (commandName === "사냥") {
+  const u = users[interaction.user.id];
+  if (!u) return interaction.reply("먼저 시작");
+
+  u.hp -= Math.floor(Math.random()*10);
+  saveJSON(DATA_PATH, users);
+
+  return interaction.reply("사냥 완료");
+}
 
   const { commandName } = interaction;
 
