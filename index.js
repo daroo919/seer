@@ -134,6 +134,11 @@ const commands = [
         .setName("question")
         .setDescription("AI에게 물어볼 질문")
         .setRequired(true)
+
+new SlashCommandBuilder().setName("시작").setDescription("RPG 시작"),
+new SlashCommandBuilder().setName("상태").setDescription("RPG 상태"),
+new SlashCommandBuilder().setName("사냥").setDescription("RPG 사냥"),
+                     
     ),
 ].map((cmd) => cmd.toJSON());
 
