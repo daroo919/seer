@@ -141,7 +141,6 @@ async function registerCommands() {
 
 client.once("clientReady", async () => {
   console.log(`✅ 봇 로그인 성공: ${client.user.tag}`);
-  client.user.setActivity("기다리고 있어..| /help");
   await registerCommands();
 });
 
