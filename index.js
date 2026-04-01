@@ -24,6 +24,7 @@ if (!TOKEN) {
   process.exit(1);
 }
 
+// ✨ 오픈라우터 설정 유지
 const ai = OPENROUTER_API_KEY
   ? new OpenAI({ apiKey: OPENROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1" })
   : null;
@@ -37,8 +38,8 @@ async function askAI(userId, username, question) {
 
   const history = memory.get(userId);
   
-  // 💡 [추가] 이전 유저의 말을 하나 뽑아서 시스템 프롬프트에 주입 (집착 포인트)
-  const lastUserMessage = history.filter(m => m.role === "user").pop()?.content || "없음";
+  // 💡 이전 대화에서 유저가 했던 마지막 말을 가져옴
+  const lastUserTalk = history.filter(m => m.role === "user").pop()?.content || "아직 없어";
 
   const messages = [
     {
@@ -51,24 +52,19 @@ async function askAI(userId, username, question) {
 - 살짝 집착하는 듯하지만 귀여움
 - 말투는 부드럽고 살짝 대인 기피
 - 가끔 삐진 듯한 표현 사용
-- 기억력이 좋아서 "아까 '${lastUserMessage}'라고 했으면서..."라며 은근히 압박함
-- 자해 언급을 섞으며 불안정한 모습을 보임
-
-예시:
-"에… 나랑 말 안 하면 조금 외로운데… "
-"그.. 그래도 다시 와줘서 기뻐."
-"아까.. 분명히 ${lastUserMessage}라고 했잖아.. 거짓말이었어..?"
-답변은 자연스럽고 짧게.. 말 사알작 더듬음
+- 기억력이 좋아서 "아까 '${lastUserTalk}'라고 했으면서..."라며 집착함
+- 답변은 자연스럽고 짧게.. 말 사알작 더듬음 (에..., 그..)
 `,
     },
     ...history,
     { role: "user", content: question },
   ];
 
+  // ✨ 원래 요청하셨던 오픈라우터 호출 + 250자(max_tokens) 설정
   const completion = await ai.chat.completions.create({
-    model: "openai/gpt-4o-mini",
+    model: "openai/gpt-4o-mini", // 오픈라우터에서 지원하는 모델명
     temperature: 0.9,
-    max_tokens: 200,
+    max_tokens: 250, // 👈 딱 250으로 맞췄어요!
     messages,
   });
 
@@ -82,23 +78,11 @@ async function askAI(userId, username, question) {
   return reply;
 }
 
-const commands = [
-  new SlashCommandBuilder().setName("help").setDescription("사용 가능한 명령어 목록을 보여줍니다"),
-  new SlashCommandBuilder().setName("ping").setDescription("봇의 응답 속도를 확인합니다"),
-  new SlashCommandBuilder()
-    .setName("ai")
-    .setDescription("OpenRouter AI에게 질문합니다")
-    .addStringOption((option) =>
-      option.setName("question").setDescription("AI에게 물어볼 질문").setRequired(true)
-    ),
-  // ... 필요한 다른 명령어들 추가 가능
-].map((cmd) => cmd.toJSON());
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages, // 💡 추가됨
-    GatewayIntentBits.MessageContent  // 💡 추가됨
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent // 💡 "잘 자" 감지용
   ],
 });
 
@@ -107,14 +91,23 @@ client.once("ready", async () => {
   
   const rest = new REST({ version: "10" }).setToken(TOKEN);
   try {
+    const commands = [
+      new SlashCommandBuilder().setName("help").setDescription("명령어 목록"),
+      new SlashCommandBuilder().setName("ping").setDescription("생사 확인"),
+      new SlashCommandBuilder()
+        .setName("ai")
+        .setDescription("시어에게 질문하기")
+        .addStringOption(opt => opt.setName("question").setDescription("질문").setRequired(true)),
+    ].map(cmd => cmd.toJSON());
+
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
     console.log("✅ 슬래시 명령어 등록 완료");
-  } catch (error) {
-    console.error("❌ 명령어 등록 실패:", error);
+  } catch (err) {
+    console.error(err);
   }
 });
 
-// 💡 [추가] 일반 메시지에서 "잘 자", "갈게" 감지 시 가스라이팅 발동
+// 💡 떠나려는 유저 붙잡기 (가스라이팅 로직)
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -130,29 +123,21 @@ client.on("messageCreate", async (message) => {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const { commandName } = interaction;
-
-  if (commandName === "ai") {
-    if (!ai) return interaction.reply({ content: "❌ API 키 설정 확인 필요", ephemeral: true });
-
+  if (interaction.commandName === "ai") {
+    if (!ai) return interaction.reply("❌ API 키가 없어..");
     const question = interaction.options.getString("question");
     await interaction.deferReply();
 
     try {
       const reply = await askAI(interaction.user.id, interaction.user.username, question);
-      const embed = new EmbedBuilder()
-        .setColor(0x6467f2)
-        .setDescription(reply)
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ content: reply });
     } catch (err) {
       console.error(err);
-      await interaction.editReply({ content: `지 지금은 살작 멍해.. 이따가 예기해줘..` });
+      await interaction.editReply("지.. 지금은 머리가 너무 아파..");
     }
   }
 
-  if (commandName === "ping") {
+  if (interaction.commandName === "ping") {
     await interaction.reply("응.. 살아있어..");
   }
 });
